@@ -6,7 +6,7 @@ import scipy as sp
 
 # %%
 # file path
-file_path = ('data/Gitarre monophon/Samples/NoFX/G61-41101-1111-20594.wav')
+file_path = 'data/Gitarre monophon/Samples/NoFX/G61-40100-1111-20593.wav'
 
 # %%
 # load and plot the audio file
@@ -57,7 +57,7 @@ def compute_spec_centroid(spec):
 
 
 # %%
-rms_audio = compute_rms(X)
+rms_audio = compute_rms(np.abs(X))
 
 plt.figure()
 plt.subplot(2, 1, 1)
@@ -65,10 +65,10 @@ plt.semilogy(rms_audio.T, label='RMS Energy')
 plt.xticks([])
 plt.xlim([0, rms_audio.shape[-1]])
 plt.legend()
-#plt.subplot(2, 1, 2)
-#librosa.display.specshow(librosa.amplitude_to_db(X, ref=np.max), y_axis='log', x_axis='time')
-#plt.title('log Power spectrogram')
-#plt.tight_layout()
+# plt.subplot(2, 1, 2)
+# librosa.display.specshow(librosa.amplitude_to_db(X, ref=np.max), y_axis='log', x_axis='time')
+# plt.title('log Power spectrogram')
+# plt.tight_layout()
 
 # %%
-mfcc_audio = compute_mfcc(S)
+mfcc_audio = compute_mfcc(np.abs(X), Fs)
