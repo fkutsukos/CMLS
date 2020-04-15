@@ -45,6 +45,11 @@ def compute_rolloff(spec):
             break
 
     return i
+
+def compute_slope(spec):
+    k_axis = np.arange(1, len(spec) + 1)
+    slope = (1 / sum(spec)) * (len(spec) * sum(k_axis*spec) - sum(k_axis)*sum(spec)) / (len(spec)*sum(k_axis**2) - (sum(k_axis))**2)
+    return slope
 # %%
 # file path
 file_path = 'data/Gitarre monophon/Samples/NoFX/G61-40100-1111-20593.wav'
