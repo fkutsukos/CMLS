@@ -52,8 +52,8 @@ def compute_slope(spec):
     return slope
 
 def compute_flux(win):
-    spec_b = np.fft.fft(wind[:-1])
-    spec_a = np.fft.fft(wind[1:])
+    spec_b = np.fft.fft(win[:-1])
+    spec_a = np.fft.fft(win[1:])
     flux = np.sqrt(sum((spec_b - spec_a)**2))
     return flux
 
