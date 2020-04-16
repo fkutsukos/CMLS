@@ -70,15 +70,21 @@ def compute_rms(spec):
     return rms
 
 
-def compute_spec_centroid(spec):
+def compute_spec_centroid_librosa(spec):
     spectral_centroid = librosa.feature.spectral_centroid(S=spec, n_fft=N_FFT)
     return spectral_centroid
 
-def compute_speccentr(spec):
+
+def compute_speccentr_clara(spec):
     k_axis = np.arange(1, spec.shape[0] + 1)
     centr = np.sum(np.transpose(k_axis) * np.abs(spec)) / np.sum(np.abs(spec))
     return centr
 
+
+def compute_speccentr(spec):
+    k_axis = np.arange(1, len(spec) + 1)
+    centr = sum(k_axis * abs(spec)) / sum(abs(spec))
+    return centr
 
 
 # %%
@@ -96,7 +102,8 @@ plt.title('RMS')
 plt.semilogy(time_axis, rms.T, label='RMS Energy')
 plt.show()
 
-cent = compute_spec_centroid(X)
+for i in np.arange()
+cent = compute_speccentr(X)
 plt.figure(figsize=(16, 6))
 plt.title('SPECTRAL CENTROID')
 plt.semilogy(time_axis, cent.T, label='Spectral Centroid')

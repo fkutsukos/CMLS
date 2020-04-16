@@ -57,7 +57,7 @@ def compute_flux(win):
     flux = np.sqrt(sum((spec_b - spec_a)**2))
     return flux
 
-del compute_flatness(spec):
+def compute_flatness(spec):
      flatness = (np.prod(spec))**(len(spec)-1) / (1/(len(spec)-1) * sum(spec))
      return flatness
 
@@ -75,6 +75,7 @@ plt.xlim([time_axis[0], time_axis[-1]])
 plt.xlabel('Time (seconds)')
 plt.ylabel('Waveform')
 
+'''
 # %%
 # windowing
 win_length = int(np.floor(0.01 * Fs))
@@ -95,6 +96,42 @@ for i in np.arange(win_number):
     spec = spec [1 : nyquist]
 
     #insert the computation of the feature
+'''
 
+# Hanning window shaping factor L = 4 , bass minimum frequency 40 Hz.
+win_length = int(np.ceil((4 * Fs) / 40))
+
+# JND for a sound at 40 Hz is equal to 3Hz
+JND = 3
+# Peak localization
+fft_length = int(np.ceil(Fs / (2 * JND)))
+
+# FFT performance requires  N_FFT as a power of 2
+fft_length = int(2 ** (np.ceil(np.log2(fft_length))))
+
+#Hop size equal to 25% of the window length
+hop_size = int(np.floor((win_length + 1) / 4))
+
+frames_number = int(np.floor(x_length-fft_length)/hop_size)
+
+spectral_features = ['Spectral Centroid', 'Spectral Spread','Spectral Skewness','Spectral Kurtosis','Spectral Rolloff','Spectral Slope','Spectral Flatness']
+train_feature = np.zeros(frames_number)
+for i in np.arange(frames_number-1):
+
+    frame = x[i * hop_size : i*hop_size + win_length]
+    frame_wind = frame * window
+
+    spec = np.fft.fft(frame_wind, n=fft_length)
+    nyquist = int(np.floor(spec.shape[0] / 2))
+    spec = spec[1: nyquist]
+
+    train_feature[0, i] = compute_speccentr(spec)
+    train_feature[1, i] = compute_specspread(spec)
+    train_feature[2, i] = compute_specskew(spec)
+    train_feature[3, i] = compute_speckurt(spec)
+    train_feature[4, i] = compute_rolloff(spec)
+    train_feature[5, i] = compute_slope(spec)
+    train_feature[6, i] = compute_flatness(spec)
+    #for j in np.arange(spectral_features):
 
 

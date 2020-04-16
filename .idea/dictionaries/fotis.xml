@@ -6,6 +6,7 @@
       <w>hanning</w>
       <w>mfcc</w>
       <w>monophon</w>
+      <w>nyquist</w>
       <w>stft</w>
     </words>
   </dictionary>
