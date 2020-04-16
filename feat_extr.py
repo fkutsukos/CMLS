@@ -15,7 +15,7 @@ def compute_specspread(spec):
     k_axis = np.arange(1, len(spec) + 1)
     centr = sum(k_axis * abs(spec)) / sum(abs(spec))
 
-    spread = np.sqrt(sum((k_axis-centr)**2 * abs(spec)) / sum(abs(spec)))
+    spread = np.sqrt(sum((k_axis-centr)**2 * abs(spec))/sum(abs(spec)))
     return spread
 
 def compute_specskew(spec):
