@@ -50,6 +50,17 @@ def compute_slope(spec):
     k_axis = np.arange(1, len(spec) + 1)
     slope = (1 / sum(spec)) * (len(spec) * sum(k_axis*spec) - sum(k_axis)*sum(spec)) / (len(spec)*sum(k_axis**2) - (sum(k_axis))**2)
     return slope
+
+def compute_flux(win):
+    spec_b = np.fft.fft(wind[:-1])
+    spec_a = np.fft.fft(wind[1:])
+    flux = np.sqrt(sum((spec_b - spec_a)**2))
+    return flux
+
+del compute_flatness(spec):
+     flatness = (np.prod(spec))**(len(spec)-1) / (1/(len(spec)-1) * sum(spec))
+     return flatness
+
 # %%
 # file path
 file_path = 'data/Gitarre monophon/Samples/NoFX/G61-40100-1111-20593.wav'
