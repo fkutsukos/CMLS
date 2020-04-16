@@ -48,17 +48,17 @@ def compute_rolloff(spec):
 
 def compute_slope(spec):
     k_axis = np.arange(1, len(spec) + 1)
-    slope = (1 / sum(spec)) * (len(spec) * sum(k_axis*spec) - sum(k_axis)*sum(spec)) / (len(spec)*sum(k_axis**2) - (sum(k_axis))**2)
+    slope = (1 / sum(np.abs(spec))) * (len(spec) * sum(k_axis*np.abs(spec)) - sum(k_axis)*sum(np.abs(spec))) / (len(spec)*sum(k_axis**2) - (sum(k_axis))**2)
     return slope
 
 def compute_flux(win):
     spec_b = np.fft.fft(win[:-1])
     spec_a = np.fft.fft(win[1:])
-    flux = np.sqrt(sum((spec_b - spec_a)**2))
+    flux = np.sqrt(sum((np.abs(spec_b) - np.abs(spec_a))**2))
     return flux
 
 del compute_flatness(spec):
-     flatness = (np.prod(spec))**(len(spec)-1) / (1/(len(spec)-1) * sum(spec))
+     flatness = (np.prod(np.abs(spec)))**(len(spec)-1) / (1/(len(spec)-1) * sum(np.abs(spec)))
      return flatness
 
 # %%
