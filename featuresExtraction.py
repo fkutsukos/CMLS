@@ -5,43 +5,12 @@ import matplotlib.pyplot as plt
 import scipy as sp
 import librosa.display
 
-# %%
-# file path
-file_path = ('data/Gitarre monophon/Samples/NoFX/G61-41101-1111-20594.wav')
 
-# %%
-# load and plot the audio file
-x, Fs = librosa.load(file_path, sr=None)
-time_axis = np.arange(x.shape[0]) / Fs
 
-plt.figure(figsize=(16, 4))
-plt.plot(time_axis, x)
-plt.xlim([time_axis[0], time_axis[-1]])
-plt.xlabel('Time (seconds)')
-plt.ylabel('Waveform')
-
-# %%
-# compute and plot the STFT
-'''
-# Hanning window shaping factor L = 4 , bass minimum frequency 40 Hz.
-WIN_LEN = int(np.ceil((4 * Fs) / 40))
-# JND for a sound at 40 Hz
-JND = 3
-# Peak localization
-N_FFT = int(np.ceil(Fs // (2 * JND)))
-# FFT performance requires  N_FFT as a power of 2
-N_FFT = int(2 ** (np.ceil(np.log2(N_FFT))))
-HOP_SIZE = int(np.floor((WIN_LEN + 1) / 8))
-'''
-
-WIN_LEN = int(np.floor(0.01 * Fs))
-N_FFT = WIN_LEN
-HOP_SIZE = int(np.floor(0.0075 * Fs))
 
 X = np.abs(librosa.stft(x, window='hanning', n_fft=N_FFT, win_length=WIN_LEN, hop_length=HOP_SIZE))
 Y = np.log(1 + 10 * np.abs(X))
-indicesX = np.where(X == X.max())
-indicesY = np.where(Y == Y.max())
+
 # 10^ - 13/20 (13 db Attenuation)
 
 time_axis = np.arange(X.shape[1]) / (Fs / HOP_SIZE)
