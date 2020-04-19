@@ -68,7 +68,7 @@ def compute_flux(win):
 
 
 def compute_flatness(spec):
-    flatness = (np.prod(np.abs(spec))) ** (len(spec) - 1) / (1 / (len(spec) - 1) * sum(np.abs(spec)))
+    flatness = librosa.feature.spectral_flatness(S=np.abs(spec))
     return flatness
 
 
