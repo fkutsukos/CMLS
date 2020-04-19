@@ -169,7 +169,7 @@ for i in np.arange(win_number):
     #insert the computation of the feature
 '''
 # Hanning window shaping factor L = 4 , bass minimum frequency 40 Hz.
-win_length = int(np.ceil((4 * Fs) / 50))
+win_length = int(np.ceil((4 * Fs) / 40))
 
 window = sp.signal.get_window(window='hanning', Nx=win_length)
 
@@ -187,37 +187,42 @@ hop_size = int(np.floor(win_length/8))
 # Number of frames
 frames_number = int(np.floor(x.shape[0] - win_length) / hop_size)
 
-# Compute Spectral Features
-spectral_features = ['Spectral Centroid', 'Spectral Spread', 'Spectral Skewness', 'Spectral Kurtosis',
-                     'Spectral Rolloff', 'Spectral Slope', 'Spectral Flatness']
-train_spec_feature = np.zeros((len(spectral_features), frames_number))
+# Training Features
+features = ['Spectral Centroid', 'Spectral Spread', 'Spectral Skewness', 'Spectral Kurtosis',
+                     'Spectral Rolloff', 'Spectral Slope', 'Spectral Flatness', 'Zero Crossing Rate', 'MFCC']
+train_features = np.zeros((len(features), frames_number))
 for i in np.arange(frames_number - 1):
 
     frame = x[i * hop_size: i * hop_size + win_length]
     frame_wind = frame * window
 
+    # compute spectrogram for every frame using zero-padding
     spec = np.fft.fft(frame_wind, n=fft_length)
     nyquist = int(np.floor(spec.shape[0] / 2))
     spec = spec[1: nyquist]
-    if (sum(abs(spec)) != 0):
-        train_spec_feature[0, i] = compute_speccentr(spec)
-        train_spec_feature[1, i] = compute_specspread(spec)
-        train_spec_feature[2, i] = compute_specskew(spec)
-        train_spec_feature[3, i] = compute_speckurt(spec)
-        train_spec_feature[4, i] = compute_rolloff(spec)
-        train_spec_feature[5, i] = compute_slope(spec)
-        train_spec_feature[6, i] = compute_flatness(spec)
 
+    # compute spec features
+    if (sum(abs(spec)) != 0):
+        train_features[0, i] = compute_speccentr(spec)
+        train_features[1, i] = compute_specspread(spec)
+        train_features[2, i] = compute_specskew(spec)
+        train_features[3, i] = compute_speckurt(spec)
+        train_features[4, i] = compute_rolloff(spec)
+        train_features[5, i] = compute_slope(spec)
+        train_features[6, i] = compute_flatness(spec)
+
+    # compute time features
+        train_features[7, i] = compute_zcr(frame_wind, Fs)
+
+    # compute mfcc features
+    #    train_spec_feature[8, i] = compute_mfcc_librosa()
+
+'''
 # Plotting Computed Features
 feat_time_axis = np.arange(train_spec_feature.shape[1]) * hop_size / Fs
-for index, feature in enumerate(spectral_features):
+for index, feature in enumerate(features):
     plt.figure(figsize=(16, 6))
     plt.title(feature)
     plt.plot(feat_time_axis, train_spec_feature[index, :])
     plt.show()
-
-# Compute Temporal Features
-
-temporal_features = ['Zero-Crossing Rate', 'MFCCs']
-train_temp_feature = np.zeros((len(temporal_features), frames_number))
-mfcc = compute_mfcc(x, Fs, 13)
+'''
