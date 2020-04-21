@@ -1,13 +1,34 @@
 # %%
+import logging
+import shutil
 import librosa
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
 import os
 from pathlib import Path
-from sklearn.datasets import make_classification
+
+import datetime
+
+from sklearn.preprocessing import Normalizer
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import f_classif
+from sklearn.preprocessing import StandardScaler
+from sklearn.datasets import make_classification
+
+# ~ LOG_LEVEL = logging.INFO
+LOG_LEVEL = logging.DEBUG
+LOGFORMAT = "%(log_color)s%(message)s%(reset)s"
+from colorlog import ColoredFormatter
+
+logging.root.setLevel(LOG_LEVEL)
+formatter = ColoredFormatter(LOGFORMAT)
+stream = logging.StreamHandler()
+stream.setLevel(LOG_LEVEL)
+stream.setFormatter(formatter)
+logger = logging.getLogger('colorlogger')
+logger.setLevel(LOG_LEVEL)
+logger.addHandler(stream)
 
 
 # %% DEFINITION OF THE FEATURES
@@ -190,7 +211,7 @@ plt.ylabel('Waveform')
 # windowing
 '''
 win_length = int(np.floor(0.10 * Fs))
-hop_size = int(np.floor(0.050 * Fs))
+hop_size = int(np.floor(0.075 * Fs))
 
 window = sp.signal.get_window(window='hamming', Nx=win_length)
 
@@ -222,15 +243,15 @@ for i in np.arange(win_number):
 
 # Training Features
 
-def compute_features_frames(audio_file, Fs, features):
+def compute_features_frames(audio_file, fs, features):
     # Hanning window shaping factor L = 4 , bass minimum frequency 40 Hz.
-    win_length = int(np.ceil((4 * Fs) / 40))
+    win_length = int(np.ceil((4 * fs) / 40))
     window = sp.signal.get_window(window='hanning', Nx=win_length)
 
     # JND for a sound at 40 Hz is equal to 3Hz
     JND = 3
     # Peak localization
-    fft_length = int(np.ceil(Fs / (2 * JND)))
+    fft_length = int(np.ceil(fs / (2 * JND)))
 
     # FFT performance requires  N_FFT as a power of 2
     fft_length = int(2 ** (np.ceil(np.log2(fft_length))))
@@ -243,7 +264,7 @@ def compute_features_frames(audio_file, Fs, features):
 
     train_features_frames = np.zeros((len(features), frames_number))
 
-    for i in np.arange(frames_number - 1):
+    for i in np.arange(frames_number):
 
         frame = audio_file[i * hop_size: i * hop_size + win_length]
         frame_wind = frame * window
@@ -259,18 +280,17 @@ def compute_features_frames(audio_file, Fs, features):
             train_features_frames[1, i] = compute_specspread(spec)
             train_features_frames[2, i] = compute_specskew(spec)
             train_features_frames[3, i] = compute_speckurt(spec)
-            train_features_frames[4, i] = compute_rolloff(spec, Fs)
+            train_features_frames[4, i] = compute_rolloff(spec, fs)
             train_features_frames[5, i] = compute_slope(spec)
             train_features_frames[6, i] = compute_flatness(spec)
             train_features_frames[7, i] = compute_flux(frame_wind)
 
         # compute time features
-        train_features_frames[8, i] = compute_zcr(frame_wind, Fs)
+        train_features_frames[8, i] = compute_zcr(frame_wind, fs)
         # train_features_frames[9, i] = compute_autocorr(frame_wind)
 
         # compute harmonic features
         # train_features_frames[9, i] = librosa.effects.harmonic(audio_file)
-
 
         # compute cepstrum features
         # train_features_frames[11, i] = compute_mfcc_librosa()
@@ -288,31 +308,66 @@ for index, feature in enumerate(features):
     plt.show()
 '''
 
+
+def compute_features_dataset(dataset, class_name):
+    logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) +
+                ' Computing ' + str(dataset) + ' features for class: ' + str(class_name))
+    files_root = 'data/{}/{}'.format(dataset, class_name)
+    class_files = [f for f in os.listdir(files_root) if f.endswith('.wav')]
+    n_files = len(class_files)
+    files_features_mean = np.zeros((n_files, len(features)))
+    for index, f in enumerate(class_files):
+        # load the audio file f
+        audio, fs = librosa.load(os.path.join(files_root, f), sr=None)
+        # compute all the features for every frame of the audio file
+        file_features_frames = compute_features_frames(audio, fs, features)
+        # compute the mean value between frames of all the features of the audio file
+        # and store it in the matrix that holds the features for all audio files of the class
+        files_features_mean[index, :] = np.mean(file_features_frames, axis=1)
+    return files_features_mean
+
+
+datasets = ['Training', 'Test']
 classes = ['Distortion', 'NoFX', 'Tremolo']
-
-dict_train_features = {'Distortion': []}  # , 'NoFX': [], 'Tremolo': []}
-
-num_audio_files = 10
+dict_features = {'Distortion': [], 'NoFX': [], 'Tremolo': []}
 features = ['Spectral Centroid', 'Spectral Spread', 'Spectral Skewness', 'Spectral Kurtosis',
             'Spectral Rolloff', 'Spectral Slope', 'Spectral Flatness', 'Spectral Flux', 'Zero Crossing Rate',
             'Pitch Detection']
-X = np.zeros((num_audio_files, len(features)))
-y = np.zeros(3*num_audio_files)
-count = 0
-for c in classes:
-    train_root = 'data/training/{}'.format(c)
-    class_train_files = [f for f in os.listdir(train_root) if f.endswith('.wav')]
-    n_train_audio_files = len(class_train_files)
 
-    train_features_mean = np.zeros((n_train_audio_files, len(features)))
+logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Starting...')
 
-    for index, f in enumerate(class_train_files):
-        if index == num_audio_files:
-            break
-        audio, fs = librosa.load(os.path.join(train_root, f), sr=None)
-        audio_train_features_frames = compute_features_frames(audio, fs, features)
-        train_features_mean[index, :] = np.mean(audio_train_features_frames, axis=1)
+# Building Labeled Features matrix for Training
+X_train_Distortion = compute_features_dataset('Training', 'Distortion')
+X_train_NoFX = compute_features_dataset('Training', 'NoFX')
+X_train_Tremolo = compute_features_dataset('Training', 'Tremolo')
+logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Building Labeled Features matrix for Training')
+X_train = np.concatenate((X_train_Distortion, X_train_NoFX, X_train_Tremolo), axis=0)
 
+
+# Build the Ground Truth vector for Training
+y_train_Distortion = np.zeros((X_train_Distortion.shape[0],))
+y_train_NoFX = np.ones((X_train_NoFX.shape[0],))
+y_train_Tremolo = np.ones((X_train_Tremolo.shape[0],)) * 2
+logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Building Ground Truth matrix for Training')
+y_train = np.concatenate((y_train_Distortion, y_train_NoFX, y_train_Tremolo), axis=0)
+
+
+# Building Labeled Features matrix for Test
+X_test_Distortion = compute_features_dataset('Test', 'Distortion')
+X_test_NoFX = compute_features_dataset('Test', 'NoFX')
+X_test_Tremolo = compute_features_dataset('Test', 'Tremolo')
+logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Building Labeled Features matrix for Test')
+X_test = np.concatenate((X_test_Distortion, X_test_NoFX, X_test_Tremolo), axis=0)
+
+
+# Build the Ground Truth vector for Test
+y_test_Distortion = np.zeros((X_test_Distortion.shape[0],))
+y_test_NoFX = np.ones((X_test_NoFX.shape[0],))
+y_test_Tremolo = np.ones((X_test_Tremolo.shape[0],)) * 2
+logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Building Ground Truth matrix for Test')
+y_test = np.concatenate((y_test_Distortion, y_test_NoFX, y_test_Tremolo), axis=0)
+
+'''
     if count == 0:
         X = train_features_mean[0:num_audio_files, :]
 
@@ -326,12 +381,22 @@ for c in classes:
     if c == "Tremolo":
         y[2*num_audio_files: 3*num_audio_files] = 2
     count = count + 1
+'''
 
+logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Data Normalization in process...')
+scaler = Normalizer().fit(X_train)
+normalized_X = scaler.transform(X_train)
+normalized_X_test = scaler.transform(X_test)
+
+logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Feature Selection in process...')
 # define feature selection
 selectedFeatures = SelectKBest(score_func=f_classif, k=3)
 # apply feature selection
-X_selected = selectedFeatures.fit_transform(X, y)
+X_selected = selectedFeatures.fit_transform(X_train, y_train)
 # print(X_selected.shape)
+
+
+logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Finished :)')
 
 '''
 harmonic_features = librosa.effects.harmonic(x)
@@ -354,26 +419,4 @@ plt.plot(frequency_axis, spec)
 plt.show()
 '''
 
-'''
-win_length = int(np.floor(0.01 * Fs))
-hop_size = int(np.floor(0.0075 * Fs))
-window = sp.signal.get_window(window='hanning', Nx=win_length)
-harmonic_features_len = harmonic_features.shape[0]
-harmonic_features_win_number = int(np.floor((harmonic_features_len - win_length) / hop_size))
-fft_harmonics = np.zeros(len(harmonic_features_win_number))
 
-for i in np.arange(x_win_number):
-    frame = x[i * hop_size : i * hop_size + win_length]
-    frame_wind = frame * window
-
-    spec = np.fft.fft(frame_wind)
-    nyquist = int(np.floor(spec.shape[0] / 2))
-
-    spec = spec[1:nyquist]
-
-
-
-freq_axis = np.arange(fft_x.shape[0]) / Fs
-plt.plot(time_axis,fft_x)
-plt.show()
-'''
