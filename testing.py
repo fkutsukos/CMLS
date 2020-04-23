@@ -1,20 +1,28 @@
-'''
+import numpy as np
+import shutil
+from pathlib import Path
+import os
+
+
 # Moving Files from Test to Train
+classes = ['Distortion', 'NoFX', 'Tremolo']
 for c in classes:
-    print(1)
+    generic_root = Path('data/Generic/{}'.format(c))
     train_root = Path('data/Training/{}'.format(c))
     test_root = Path('data/Test/{}'.format(c))
+    class_generic_files = [f for f in os.listdir(generic_root) if f.endswith('.wav')]
     class_train_files = [f for f in os.listdir(train_root) if f.endswith('.wav')]
     class_test_files = [f for f in os.listdir(test_root) if f.endswith('.wav')]
+    n_generic_audio_files = len(class_generic_files)
     n_train_audio_files = len(class_train_files)
     n_test_audio_files = len(class_test_files)
+    print('Generic path , total files', generic_root, ', ', n_generic_audio_files)
     print('Train path , total files', train_root, ', ', n_train_audio_files)
     print('Train path , total files', test_root, ', ', n_test_audio_files)
-    for index, f in enumerate(class_test_files):
-        if index > int(n_test_audio_files*0.9):
+    for index, f in enumerate(class_generic_files):
+        if index > int(n_test_audio_files*0.1):
             break
-        shutil.move(test_root / f, train_root / f)
-'''
+        shutil.move(generic_root / f, train_root / f)
 
 '''
 for c in classes:
@@ -62,3 +70,55 @@ freq_axis = np.arange(fft_x.shape[0]) / Fs
 plt.plot(time_axis,fft_x)
 plt.show()
 '''
+
+
+
+'''
+# %%
+# file path
+file_path = 'data/Bass monophon/Samples/EQ/B21-50312-1122-12675.wav'
+
+# %%
+# load and plot the audio file
+x, Fs = librosa.load(file_path, sr=None)
+time_axis = np.arange(x.shape[0]) / Fs
+plt.figure(figsize=(16, 4))
+plt.plot(time_axis, x)
+plt.xlim([time_axis[0], time_axis[-1]])
+plt.xlabel('Time (seconds)')
+plt.ylabel('Waveform')
+'''
+# %%
+# windowing
+'''
+win_length = int(np.floor(0.10 * Fs))
+hop_size = int(np.floor(0.075 * Fs))
+
+window = sp.signal.get_window(window='hamming', Nx=win_length)
+
+# JND for a sound at 40 Hz is equal to 3Hz
+JND = 3
+# Peak localization
+fft_length = int(np.ceil(Fs / (2 * JND)))
+
+# FFT performance requires  N_FFT as a power of 2
+fft_length = int(2 ** (np.ceil(np.log2(fft_length))))
+fft_length = win_length
+'''
+'''
+x_length = x.shape[0]
+win_number = int(np.floor((x_length-win_length)/hop_size))
+
+for i in np.arange(win_number):
+    frame = x[i * hop_size : i*hop_size + win_length]
+    frame_wind = frame * window
+
+    spec = np.fft.fft(frame_wind)
+    nyquist = int(np.floor(spec.shape[0] / 2))
+
+    spec = spec [1 : nyquist]
+
+    #insert the computation of the feature
+'''
+
+

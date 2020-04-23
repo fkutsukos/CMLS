@@ -7,6 +7,8 @@
       <w>mfcc</w>
       <w>monophon</w>
       <w>nyquist</w>
+      <w>pathlib</w>
+      <w>shutil</w>
       <w>stft</w>
     </words>
   </dictionary>

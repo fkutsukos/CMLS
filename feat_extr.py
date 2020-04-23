@@ -1,18 +1,17 @@
 # %%
 import logging
-import shutil
 import librosa
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy as sp
 import os
-from pathlib import Path
+
 
 import datetime
 
 from sklearn.preprocessing import Normalizer
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import f_classif
+import sklearn.svm
 from sklearn.preprocessing import StandardScaler
 from sklearn.datasets import make_classification
 
@@ -134,7 +133,8 @@ def compute_mfcc(audio, fs, n_mfcc):
 
 def compute_mfcc_librosa(audio, fs):
     mfcc = librosa.feature.mfcc(y=audio, sr=fs)
-    return mfcc
+    mfcc_upper = mfcc[4:]
+    return mfcc_upper
 
 
 # Time features
@@ -191,56 +191,6 @@ def compute_autocorr(win):
     result = np.correlate(win, win, mode='full')
     return result[int(result.size / 2):]
 
-
-'''
-# %%
-# file path
-file_path = 'data/Bass monophon/Samples/EQ/B21-50312-1122-12675.wav'
-
-# %%
-# load and plot the audio file
-x, Fs = librosa.load(file_path, sr=None)
-time_axis = np.arange(x.shape[0]) / Fs
-plt.figure(figsize=(16, 4))
-plt.plot(time_axis, x)
-plt.xlim([time_axis[0], time_axis[-1]])
-plt.xlabel('Time (seconds)')
-plt.ylabel('Waveform')
-'''
-# %%
-# windowing
-'''
-win_length = int(np.floor(0.10 * Fs))
-hop_size = int(np.floor(0.075 * Fs))
-
-window = sp.signal.get_window(window='hamming', Nx=win_length)
-
-# JND for a sound at 40 Hz is equal to 3Hz
-JND = 3
-# Peak localization
-fft_length = int(np.ceil(Fs / (2 * JND)))
-
-# FFT performance requires  N_FFT as a power of 2
-fft_length = int(2 ** (np.ceil(np.log2(fft_length))))
-fft_length = win_length
-'''
-'''
-x_length = x.shape[0]
-win_number = int(np.floor((x_length-win_length)/hop_size))
-
-for i in np.arange(win_number):
-    frame = x[i * hop_size : i*hop_size + win_length]
-    frame_wind = frame * window
-
-    spec = np.fft.fft(frame_wind)
-    nyquist = int(np.floor(spec.shape[0] / 2))
-
-    spec = spec [1 : nyquist]
-
-    #insert the computation of the feature
-'''
-
-
 # Training Features
 
 def compute_features_frames(audio_file, fs, features):
@@ -287,13 +237,6 @@ def compute_features_frames(audio_file, fs, features):
 
         # compute time features
         train_features_frames[8, i] = compute_zcr(frame_wind, fs)
-        # train_features_frames[9, i] = compute_autocorr(frame_wind)
-
-        # compute harmonic features
-        # train_features_frames[9, i] = librosa.effects.harmonic(audio_file)
-
-        # compute cepstrum features
-        # train_features_frames[11, i] = compute_mfcc_librosa()
 
     return train_features_frames
 
@@ -315,24 +258,83 @@ def compute_features_dataset(dataset, class_name):
     files_root = 'data/{}/{}'.format(dataset, class_name)
     class_files = [f for f in os.listdir(files_root) if f.endswith('.wav')]
     n_files = len(class_files)
-    files_features_mean = np.zeros((n_files, len(features)))
+    n_mfcc = 13
+    all_files_features_mean = np.zeros((n_files, len(features)))
+    all_files_features_std = np.zeros((n_files, len(features)))
+    all_files_features_var = np.zeros((n_files, len(features)))
+    all_files_features_first_der_mean = np.zeros((n_files, len(features)))
+    all_files_features_first_der_std = np.zeros((n_files, len(features)))
+    all_files_features_first_der_var = np.zeros((n_files, len(features)))
+    all_files_features_second_der_mean = np.zeros((n_files, len(features)))
+    all_files_features_second_der_std = np.zeros((n_files, len(features)))
+    all_files_features_second_der_var = np.zeros((n_files, len(features)))
+    all_files_mfccs_mean = np.zeros((n_files, n_mfcc))
+    all_files_mfccs_std = np.zeros((n_files, n_mfcc))
+    all_files_mfccs_var = np.zeros((n_files, n_mfcc))
+    all_files_mfccs_first_der_mean = np.zeros((n_files, n_mfcc))
+    all_files_mfccs_first_der_std = np.zeros((n_files, n_mfcc))
+    all_files_mfccs_first_der_var = np.zeros((n_files, n_mfcc))
+    all_files_mfccs_second_der_mean = np.zeros((n_files, n_mfcc))
+    all_files_mfccs_second_der_std = np.zeros((n_files, n_mfcc))
+    all_files_mfccs_second_der_var = np.zeros((n_files, n_mfcc))
+
     for index, f in enumerate(class_files):
         # load the audio file f
         audio, fs = librosa.load(os.path.join(files_root, f), sr=None)
         # compute all the features for every frame of the audio file
         file_features_frames = compute_features_frames(audio, fs, features)
+
+        # compute the first and second derivative of the features
+        file_features_first_der_frames = np.diff(file_features_frames, axis=1)
+        file_features_second_der_frames = np.diff(file_features_first_der_frames, axis=1)
+
+        # compute the cepstrum coefficients
+        file_mfccs = compute_mfcc(audio, fs, n_mfcc)
+
+        # compute the first and second derivative of the cepstrum coefficients
+        file_mfccs_first_der_frames = np.diff(file_mfccs, axis=1)
+        file_mfccs_second_der_frames = np.diff(file_mfccs_first_der_frames, axis=1)
+
         # compute the mean value between frames of all the features of the audio file
         # and store it in the matrix that holds the features for all audio files of the class
-        files_features_mean[index, :] = np.mean(file_features_frames, axis=1)
-    return files_features_mean
+        all_files_features_mean[index, :] = np.mean(file_features_frames, axis=1)
+        all_files_features_std[index, :] = np.ndarray.std(file_features_frames, axis=1)
+        all_files_features_var[index, :] = np.ndarray.var(file_features_frames, axis=1)
+
+        all_files_features_first_der_mean[index, :] = np.mean(file_features_first_der_frames, axis=1)
+        all_files_features_first_der_std[index, :] = np.ndarray.std(file_features_first_der_frames, axis=1)
+        all_files_features_first_der_var[index, :] = np.ndarray.var(file_features_first_der_frames, axis=1)
+
+        all_files_features_second_der_mean[index, :] = np.mean(file_features_second_der_frames, axis=1)
+        all_files_features_second_der_std[index, :] = np.ndarray.std(file_features_second_der_frames, axis=1)
+        all_files_features_second_der_var[index, :] = np.ndarray.var(file_features_second_der_frames, axis=1)
+
+        all_files_mfccs_mean[index, :] = np.mean(file_mfccs, axis=1)
+        all_files_mfccs_std[index, :] = np.ndarray.std(file_mfccs, axis=1)
+        all_files_mfccs_var[index, :] = np.ndarray.var(file_mfccs, axis=1)
+
+        all_files_mfccs_first_der_mean[index, :] = np.mean(file_mfccs_first_der_frames, axis=1)
+        all_files_mfccs_first_der_std[index, :] = np.ndarray.std(file_mfccs_first_der_frames, axis=1)
+        all_files_mfccs_first_der_var[index, :] = np.ndarray.var(file_mfccs_first_der_frames, axis=1)
+
+        all_files_mfccs_second_der_mean[index, :] = np.mean(file_mfccs_second_der_frames, axis=1)
+        all_files_mfccs_second_der_std[index, :] = np.ndarray.std(file_mfccs_second_der_frames, axis=1)
+        all_files_mfccs_second_der_var[index, :] = np.ndarray.var(file_mfccs_second_der_frames, axis=1)
+
+    all_features = np.concatenate((all_files_features_mean, all_files_features_std, all_files_features_var,
+                                   all_files_features_first_der_mean, all_files_features_first_der_std,all_files_features_first_der_var,
+                                   all_files_features_second_der_mean, all_files_features_second_der_std, all_files_features_second_der_var,
+                                   all_files_mfccs_mean, all_files_mfccs_std, all_files_mfccs_var,
+                                   all_files_mfccs_first_der_mean, all_files_mfccs_first_der_std, all_files_mfccs_first_der_var,
+                                   all_files_mfccs_second_der_mean, all_files_mfccs_second_der_std, all_files_mfccs_second_der_var), axis=1)
+    return all_features
 
 
 datasets = ['Training', 'Test']
 classes = ['Distortion', 'NoFX', 'Tremolo']
 dict_features = {'Distortion': [], 'NoFX': [], 'Tremolo': []}
 features = ['Spectral Centroid', 'Spectral Spread', 'Spectral Skewness', 'Spectral Kurtosis',
-            'Spectral Rolloff', 'Spectral Slope', 'Spectral Flatness', 'Spectral Flux', 'Zero Crossing Rate',
-            'Pitch Detection']
+            'Spectral Rolloff', 'Spectral Slope', 'Spectral Flatness', 'Spectral Flux', 'Zero Crossing Rate']
 
 logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Starting...')
 
@@ -340,9 +342,9 @@ logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Start
 X_train_Distortion = compute_features_dataset('Training', 'Distortion')
 X_train_NoFX = compute_features_dataset('Training', 'NoFX')
 X_train_Tremolo = compute_features_dataset('Training', 'Tremolo')
-logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Building Labeled Features matrix for Training')
+logger.info(
+    str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Building Labeled Features matrix for Training')
 X_train = np.concatenate((X_train_Distortion, X_train_NoFX, X_train_Tremolo), axis=0)
-
 
 # Build the Ground Truth vector for Training
 y_train_Distortion = np.zeros((X_train_Distortion.shape[0],))
@@ -351,14 +353,12 @@ y_train_Tremolo = np.ones((X_train_Tremolo.shape[0],)) * 2
 logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Building Ground Truth matrix for Training')
 y_train = np.concatenate((y_train_Distortion, y_train_NoFX, y_train_Tremolo), axis=0)
 
-
 # Building Labeled Features matrix for Test
 X_test_Distortion = compute_features_dataset('Test', 'Distortion')
 X_test_NoFX = compute_features_dataset('Test', 'NoFX')
 X_test_Tremolo = compute_features_dataset('Test', 'Tremolo')
 logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Building Labeled Features matrix for Test')
 X_test = np.concatenate((X_test_Distortion, X_test_NoFX, X_test_Tremolo), axis=0)
-
 
 # Build the Ground Truth vector for Test
 y_test_Distortion = np.zeros((X_test_Distortion.shape[0],))
@@ -367,34 +367,50 @@ y_test_Tremolo = np.ones((X_test_Tremolo.shape[0],)) * 2
 logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Building Ground Truth matrix for Test')
 y_test = np.concatenate((y_test_Distortion, y_test_NoFX, y_test_Tremolo), axis=0)
 
-'''
-    if count == 0:
-        X = train_features_mean[0:num_audio_files, :]
-
-    else:
-        X = np.concatenate((X, train_features_mean[0:num_audio_files, :]))
-
-    if c == "Distortion":
-        y[0:num_audio_files] = 0
-    if c == "NoFX":
-        y[num_audio_files:2*num_audio_files] = 1
-    if c == "Tremolo":
-        y[2*num_audio_files: 3*num_audio_files] = 2
-    count = count + 1
-'''
 
 logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Data Normalization in process...')
+'''
 scaler = Normalizer().fit(X_train)
 normalized_X = scaler.transform(X_train)
 normalized_X_test = scaler.transform(X_test)
+'''
+feat_max = np.max(X_train, axis=0)
+feat_min = np.min(X_train, axis=0)
+X_train_normalized = (X_train - feat_min) / (feat_max - feat_min)
+X_test_normalized = (X_test - feat_min) / (feat_max - feat_min)
+
 
 logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Feature Selection in process...')
-# define feature selection
 selectedFeatures = SelectKBest(score_func=f_classif, k=3)
-# apply feature selection
-X_selected = selectedFeatures.fit_transform(X_train, y_train)
+X_train_selected = selectedFeatures.fit_transform(X_train_normalized, y_train)
+X_test_selected = selectedFeatures.fit_transform(X_test_normalized, y_test)
 # print(X_selected.shape)
 
+
+logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Classification in process...')
+SVM_parameters = {
+    'C': 1,
+    'kernel': 'rbf',
+}
+
+def compute_metrics(gt_labels, predicted_labels):
+    TP = np.sum(np.logical_and(predicted_labels == 1, gt_labels == 1))
+    FP = np.sum(np.logical_and(predicted_labels == 1, gt_labels == 0))
+    TN = np.sum(np.logical_and(predicted_labels == 0, gt_labels == 0))
+    FN = np.sum(np.logical_and(predicted_labels == 0, gt_labels == 1))
+    accuracy = (TP + TN) / (TP + FP + TN + FN)
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+    F1_score = 2 * precision * recall / (precision + recall)
+    print("Results : \n accuracy = {} \n precision = {} \n recall = {} \n F1 score = {}".format(
+        accuracy, precision, recall, F1_score))
+
+clf = sklearn.svm.SVC(**SVM_parameters)
+clf.fit(X_train_selected, y_train)
+y_predict = clf.predict(X_train_selected)
+y_test_predict = clf.predict(X_test_selected)
+
+compute_metrics(y_test, y_test_predict)
 
 logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Finished :)')
 
@@ -418,5 +434,3 @@ plt.ylabel('Amplitude')
 plt.plot(frequency_axis, spec)
 plt.show()
 '''
-
-
