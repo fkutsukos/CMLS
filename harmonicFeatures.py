@@ -33,13 +33,13 @@ def compute_harmonics(win):
 
     frequency_axis = np.arange(spec.shape[0]) * (Fs / 2) / spec.shape[0]
 
-    '''
+
     plt.figure(figsize=(16, 5))
 
     plt.plot(frequency_axis[1:1000], spec[1:1000])
     plt.grid(True)
     plt.title('Spectrum of harmonic part')
-    '''
+
 
     peaks,_ = scipy.signal.find_peaks(spec, prominence = 100)
 
@@ -176,6 +176,7 @@ time_axis = np.arange(x.shape[0]) / Fs
 def compute_harmonics(win, peaks_n):
     harmonic_features = librosa.effects.harmonic(win)
     spec = np.abs(np.fft.fft(harmonic_features))
+    #spec = np.abs(np.fft.fft(win))
     nyquist = int(np.floor(spec.shape[0] / 2))
 
     spec = spec[1:nyquist]
