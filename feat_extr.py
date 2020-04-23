@@ -80,6 +80,7 @@ def compute_rolloff(spec, fs):
 
 def compute_slope(spec):
     k_axis = np.arange(1, len(spec) + 1)
+
     slope = (1 / sum(np.abs(spec))) * (len(spec) * sum(k_axis * np.abs(spec)) - sum(k_axis) * sum(np.abs(spec))) / (
             len(spec) * sum(k_axis ** 2) - (sum(k_axis)) ** 2)
     return slope
