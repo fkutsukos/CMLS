@@ -200,6 +200,240 @@ def compute_harmonics(win, peaks_n):
 
     return Hmax, Hpos, Hen
 
+
+def specs_of_harmonics(Hmax, Hpos, Hen):
+    hp_s = 16
+    wn_l = 64
+    fr_n = int(np.floor(Hmax.shape[1] - wn_l) / hp_s)
+    window = sp.signal.get_window(window='hanning', Nx=wn_l)
+    Sr = 76  # frames number(152) / 2 sec
+    Nyq = int(Sr / 2)
+    temp = np.zeros(wn_l)
+    # initialization
+    spec_hmax_1 = np.zeros([Nyq - 1, fr_n])
+    spec_hmax_2 = np.zeros([Nyq - 1, fr_n])
+    spec_hmax_3 = np.zeros([Nyq - 1, fr_n])
+    spec_hmax_4 = np.zeros([Nyq - 1, fr_n])
+    spec_hmax_5 = np.zeros([Nyq - 1, fr_n])
+
+    spec_hpos_1 = np.zeros([Nyq - 1, fr_n])
+    spec_hpos_2 = np.zeros([Nyq - 1, fr_n])
+    spec_hpos_3 = np.zeros([Nyq - 1, fr_n])
+    spec_hpos_4 = np.zeros([Nyq - 1, fr_n])
+    spec_hpos_5 = np.zeros([Nyq - 1, fr_n])
+
+    spec_hen_1 = np.zeros([Nyq - 1, fr_n])
+    spec_hen_2 = np.zeros([Nyq - 1, fr_n])
+    spec_hen_3 = np.zeros([Nyq - 1, fr_n])
+    spec_hen_4 = np.zeros([Nyq - 1, fr_n])
+    spec_hen_5 = np.zeros([Nyq - 1, fr_n])
+
+    for i in np.arange(fr_n):
+        frame_hmax = Hmax[:, i * hp_s: i * hp_s + wn_l]
+        frame_hpos = Hpos[:, i * hp_s: i * hp_s + wn_l]
+        frame_hen = Hen[:, i * hp_s: i * hp_s + wn_l]
+
+        # build spec_hmax's matrices
+        temp = np.fft.fft(frame_hmax[0, :])
+        spec_hmax_1[:, i] = temp[1:Nyq]
+        # f_axis = np.arange(spec_hmax_1) * (Sr/2) / spec_hmax_1.shape[0]
+        temp = np.fft.fft(frame_hmax[1, :])
+        spec_hmax_2[:, i] = temp[1:Nyq]
+
+        temp = np.fft.fft(frame_hmax[2, :])
+        spec_hmax_3[:, i] = temp[1:Nyq]
+
+        temp = np.fft.fft(frame_hmax[3, :])
+        spec_hmax_4[:, i] = temp[1:Nyq]
+
+        temp = np.fft.fft(frame_hmax[4, :])
+        spec_hmax_5[:, i] = temp[1:Nyq]
+
+        # build spec_hpos's matrices
+        temp = np.fft.fft(frame_hpos[0, :])
+        spec_hpos_1[:, i] = temp[1:Nyq]
+
+        temp = np.fft.fft(frame_hpos[1, :])
+        spec_hpos_2[:, i] = temp[1:Nyq]
+
+        temp = np.fft.fft(frame_hpos[2, :])
+        spec_hpos_3[:, i] = temp[1:Nyq]
+
+        temp = np.fft.fft(frame_hpos[3, :])
+        spec_hpos_4[:, i] = temp[1:Nyq]
+
+        temp = np.fft.fft(frame_hpos[4, :])
+        spec_hpos_5[:, i] = temp[1:Nyq]
+
+        # build spec_hen's matrices
+        temp = np.fft.fft(frame_hen[0, :])
+        spec_hen_1[:, i] = temp[1:Nyq]
+
+        temp = np.fft.fft(frame_hen[1, :])
+        spec_hen_2[:, i] = temp[1:Nyq]
+
+        temp = np.fft.fft(frame_hen[2, :])
+        spec_hen_3[:, i] = temp[1:Nyq]
+
+        temp = np.fft.fft(frame_hen[3, :])
+        spec_hen_4[:, i] = temp[1:Nyq]
+
+        temp = np.fft.fft(frame_hen[4, :])
+        spec_hen_5[:, i] = temp[1:Nyq]
+
+    spec_hmax_1 = spec_hmax_1[0:23, :]
+    spec_hmax_2 = spec_hmax_2[0:23, :]
+    spec_hmax_3 = spec_hmax_3[0:23, :]
+    spec_hmax_4 = spec_hmax_4[0:23, :]
+    spec_hmax_5 = spec_hmax_5[0:23, :]
+
+    spec_hpos_1 = spec_hpos_1[0:23, :]
+    spec_hpos_2 = spec_hpos_2[0:23, :]
+    spec_hpos_3 = spec_hpos_3[0:23, :]
+    spec_hpos_4 = spec_hpos_4[0:23, :]
+    spec_hpos_5 = spec_hpos_5[0:23, :]
+
+    spec_hen_1 = spec_hen_1[0:23, :]
+    spec_hen_2 = spec_hen_2[0:23, :]
+    spec_hen_3 = spec_hen_3[0:23, :]
+    spec_hen_4 = spec_hen_4[0:23, :]
+    spec_hen_5 = spec_hen_5[0:23, :]
+
+    f_axis = np.arange(spec_hmax_1.shape[0]) * (Sr / 2) / spec_hmax_1.shape[0]
+    print('k_axis:')
+    print(np.arange(spec_hmax_1.shape[0]))
+    print('f_axis:')
+    print(f_axis)
+    print('they are almost the same')
+
+    # plots Hmax spectr
+    fig = plt.figure(figsize=(16, 6))
+    plt.subplot(3, 2, 1)
+    plt.imshow(spec_hmax_1, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hmax_1(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    plt.subplot(3, 2, 2)
+    plt.imshow(spec_hmax_2, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hmax_2(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    plt.subplot(3, 2, 3)
+    plt.imshow(spec_hmax_3, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hmax_3(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    plt.subplot(3, 2, 4)
+    plt.imshow(spec_hmax_4, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hmax_4(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    plt.subplot(3, 2, 5)
+    plt.imshow(spec_hmax_5, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hmax_5(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    # plots Hpos spectr
+    fig = plt.figure(figsize=(16, 6))
+    plt.subplot(3, 2, 1)
+    plt.imshow(spec_hpos_1, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hpos_1(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    plt.subplot(3, 2, 2)
+    plt.imshow(spec_hpos_2, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hpos_2(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    plt.subplot(3, 2, 3)
+    plt.imshow(spec_hpos_3, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hpos_3(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    plt.subplot(3, 2, 4)
+    plt.imshow(spec_hpos_4, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hpos_4(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    plt.subplot(3, 2, 5)
+    plt.imshow(spec_hpos_5, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hpos_5(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    # plots Hmax spectr
+    fig = plt.figure(figsize=(16, 6))
+    plt.subplot(3, 2, 1)
+    plt.imshow(spec_hen_1, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hen_1(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    plt.subplot(3, 2, 2)
+    plt.imshow(spec_hen_2, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hen_2(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    plt.subplot(3, 2, 3)
+    plt.imshow(spec_hen_3, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hen_3(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    plt.subplot(3, 2, 4)
+    plt.imshow(spec_hen_4, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hen_4(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    plt.subplot(3, 2, 5)
+    plt.imshow(spec_hen_5, origin='lower', aspect='auto')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency [Hz]')
+    plt.title('Spectrogram of Hen_5(m)')
+    plt.colorbar()
+    plt.tight_layout()
+
+    return None
+
 # Hanning window shaping factor L = 4 , bass minimum frequency 40 Hz.
 win_length = int(np.ceil((4 * Fs) / 40))
 window = sp.signal.get_window(window='hanning', Nx=win_length)
@@ -257,3 +491,6 @@ for i in np.arange(5):
 plt.title('Hen Curves')
 plt.xlabel('frames')
 plt.grid(True)
+
+#plots of the spectrograms
+specs_of_harmonics(Hmax, Hpos, Hen)
