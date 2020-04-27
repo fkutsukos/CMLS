@@ -21,7 +21,7 @@ logger.setLevel(LOG_LEVEL)
 logger.addHandler(stream)
 
 # Moving Files from Test to Train
-classes = ['Distortion', 'NoFX', 'Tremolo']
+classes = ['Distortion', 'NoFX' , 'Tremolo']
 for c in classes:
     generic_root = Path('data/Generic/{}'.format(c))
     train_root = Path('data/Training/{}'.format(c))
@@ -35,13 +35,13 @@ for c in classes:
     print('Generic path , total files', generic_root, ', ', n_generic_audio_files)
     print('Train path , total files', train_root, ', ', n_train_audio_files)
     print('Train path , total files', test_root, ', ', n_test_audio_files)
+    n_files_tbm = int(1499)
     logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) +
-                ' Started moving files ' + str(int(n_generic_audio_files * 0.1)) + '... ')
-    for index, f in enumerate(class_generic_files):
-
-        if index > int(n_generic_audio_files*0.01):
+                ' Started moving files ' + str(n_files_tbm) + '... ')
+    for index, f in enumerate(class_train_files):
+        if index > n_files_tbm:
             break
-        shutil.move(generic_root / f, train_root / f)
+        shutil.move(train_root / f, test_root / f)
     logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) +
                 ' Finished moving files ... ')
 '''
