@@ -3,16 +3,7 @@ import pandas as pd
 import librosa
 import os
 import sys
-import matplotlib.pyplot as plt
-import IPython.display as ipd
 import scipy as sp
-import wget as wget
-
-
-!wget --no-check-certificate -r "https://drive.google.com/uc?export=download&id=13gk4s3f0ULwee24Xb1gAA6Mm4YqveA3Q" -O "Prova.zip"
-
-
-!unzip Prova.zip
 
 def compute_ap(win):
     n = win.shape[0]
@@ -20,9 +11,8 @@ def compute_ap(win):
     ap = sum(s_m)/n
     return ap
 
-
-instrument = ['Bass monophon', 'Gitarre monophon'];
-classes=['Distortion', 'Tremolo', 'NoFX'];
+folder = ['Test', 'Training'];
+classes=['Distortion', 'NoFX', 'Tremolo'];
 dict_train_ap = {'NoFX': [], 'Distortion': [], 'Tremolo': []};
 
 Fs = 44100 #for all audio files;
@@ -30,19 +20,19 @@ win_length = int(np.floor(0.01 * Fs));
 hop_size = win_length;
 window = sp.signal.get_window(window='boxcar', Nx=win_length);
 
-files_information = pd.DataFrame(columns = ['name', 'instrument', 'effect', 'index'])
-processed_files = pd.DataFrame()
-#dataset = pd.DataFrame(columns=['Audios','vec'])
+files_information = pd.DataFrame(columns = ['name', 'effect', 'attack'])
+all_files = pd.DataFrame()
 
-counter = 0
+from pathlib import Path
 
-
-
-for i in instrument:
+for i in folder:
     print(i)
     for c in classes:
         print(c)
-        ap_root = '/content/Prova/{}/{}/'.format(i,c);
+
+        ap_root = Path('Data/data/{}/{}'.format(i, c))
+
+        #ap_root = '\CMLS\Prova\{}\{}'.format(i,c)
         files = [f for f in os.listdir(ap_root) if f.endswith('.wav')];
 
         for index, f in enumerate(files):
@@ -67,39 +57,13 @@ for i in instrument:
                    attack_sample = j*win_length;
                    break
 
-            processed_audio = audio[attack_sample:];
-
-            #store processed_audio in csv file
+            #store useful data in pandas DataFrames
 
             np.set_printoptions(threshold=sys.maxsize)
 
-            processed_audio = pd.Series(processed_audio)
+            audio = pd.Series(audio)
+            all_files = all_files.append(audio, ignore_index=True)
 
-            files_information = files_information.append({'name': f, 'instrument': i, 'effect': c, 'index': counter}, ignore_index=True)
-            files_information.to_csv('informations.csv')
+            files_information = files_information.append({'name': f, 'effect': c, 'attack': attack_sample}, ignore_index=True)
 
-            processed_files = processed_files.append(processed_audio, ignore_index=True)
-            processed_files.to_csv('processed_files.csv')
-
-            counter = counter + 1
-
-
-
-
-            #dataset=dataset.append({'Audios':[f],'vec': processed_audio}, ignore_index= True)
-
-#np.set_printoptions(threshold=sys.maxsize)
-#dataset.to_csv('dataset.csv')
-
-
-
-
-audio_test = processed_files.loc[3]
-
-plt.figure(figsize=(16, 16))
-time_axis = np.arange(audio_test.shape[0])
-plt.plot(time_axis, audio_test)
-plt.grid(True)
-plt.title('attack audio')
-
-ipd.Audio(audio_test, rate=Fs)
+            files_information.to_csv('files_information.csv', index = False)

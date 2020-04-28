@@ -60,7 +60,7 @@ X_test_normalized = np.concatenate((X_test_Distortion_normalized, X_test_NoFX_no
                                    axis=0)
 
 # Train Matrices Feature Selection
-k = 90
+k = 3
 logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Feature Selection in process with k = ' +str(k))
 selectedFeatures = SelectKBest(score_func=f_classif, k=k)
 

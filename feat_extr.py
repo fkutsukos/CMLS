@@ -6,6 +6,7 @@ import scipy as sp
 import math
 import os
 import datetime
+import pandas as pd
 from numpy import savetxt
 
 # ~ LOG_LEVEL = logging.INFO
@@ -516,6 +517,7 @@ def compute_harmonic_curves(audio_file, fs, peaks_n, file_path):
 
     return Hmax, Hpos, Hen
 
+files_information = pd.read_csv('files_information.csv', delimiter=',')
 
 def compute_features_dataset(dataset, class_name):
     logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) +
@@ -524,7 +526,7 @@ def compute_features_dataset(dataset, class_name):
     # data = genfromtxt('data/{}_{}.csv'.format(dataset, class_name), delimiter=',')
     # df = pd.read_csv('data/{}_{}.csv'.format(dataset, class_name))
 
-    files_root = 'data/{}/{}'.format(dataset, class_name)
+    files_root = 'data\{}\{}'.format(dataset, class_name)
     class_files = [f for f in os.listdir(files_root) if f.endswith('.wav')]
 
     n_files = len(class_files)
@@ -563,6 +565,18 @@ def compute_features_dataset(dataset, class_name):
         # load the audio file f
         print("File analysed : " + str(f))
         audio, fs = librosa.load(os.path.join(files_root, f), sr=None)
+        print("before cutting:", audio.shape)
+
+        #Cutting audio file
+        is_file = files_information['name'] == f
+        single_file_informations = files_information.loc[is_file]
+        attack_sample = single_file_informations['attack'].values[0]
+        print(single_file_informations)
+        print(attack_sample)
+
+        audio = audio[attack_sample:]
+        print("after cutting:", audio.shape)
+
         # compute the spectral features for every frame
         file_features_frames = compute_features_frames(audio, fs, features, n_harmonics, f)
 
@@ -630,7 +644,7 @@ def compute_features_dataset(dataset, class_name):
     return all_features
 
 
-datasets = ['Training', 'Test']
+datasets = ['Test', 'Training']
 classes = ['Distortion', 'NoFX', 'Tremolo']
 dict_features = {'Distortion': [], 'NoFX': [], 'Tremolo': []}
 features = ['Spectral Centroid', 'Spectral Spread', 'Spectral Skewness', 'Spectral Kurtosis',
