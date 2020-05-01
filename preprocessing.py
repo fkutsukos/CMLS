@@ -11,7 +11,7 @@ def compute_ap(win):
     ap = sum(s_m)/n
     return ap
 
-folder = ['Test', 'Training'];
+folder = ['Generic'];
 classes=['Distortion', 'NoFX', 'Tremolo'];
 dict_train_ap = {'NoFX': [], 'Distortion': [], 'Tremolo': []};
 
@@ -20,8 +20,11 @@ win_length = int(np.floor(0.01 * Fs));
 hop_size = win_length;
 window = sp.signal.get_window(window='boxcar', Nx=win_length);
 
-files_information = pd.DataFrame(columns = ['name', 'effect', 'attack'])
-all_files = pd.DataFrame()
+if os.path.isfile('files_information.csv'):
+    files_information = pd.read_csv('files_information.csv', delimiter=';')
+
+else:
+    files_information = pd.DataFrame(columns = ['name', 'effect', 'attack'])
 
 from pathlib import Path
 
@@ -30,7 +33,7 @@ for i in folder:
     for c in classes:
         print(c)
 
-        ap_root = Path('Data/data/{}/{}'.format(i, c))
+        ap_root = Path('data/{}/{}'.format(i, c))
 
         #ap_root = '\CMLS\Prova\{}\{}'.format(i,c)
         files = [f for f in os.listdir(ap_root) if f.endswith('.wav')];
@@ -59,11 +62,6 @@ for i in folder:
 
             #store useful data in pandas DataFrames
 
-            np.set_printoptions(threshold=sys.maxsize)
-
-            audio = pd.Series(audio)
-            all_files = all_files.append(audio, ignore_index=True)
-
             files_information = files_information.append({'name': f, 'effect': c, 'attack': attack_sample}, ignore_index=True)
-
-            files_information.to_csv('files_information.csv', index = False)
+            print(f)
+files_information.to_csv('files_information.csv', index = False)

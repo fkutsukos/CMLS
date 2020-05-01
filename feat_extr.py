@@ -517,7 +517,6 @@ def compute_harmonic_curves(audio_file, fs, peaks_n, file_path):
 
     return Hmax, Hpos, Hen
 
-files_information = pd.read_csv('files_information.csv', delimiter=',')
 
 def compute_features_dataset(dataset, class_name):
     logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) +
@@ -526,7 +525,7 @@ def compute_features_dataset(dataset, class_name):
     # data = genfromtxt('data/{}_{}.csv'.format(dataset, class_name), delimiter=',')
     # df = pd.read_csv('data/{}_{}.csv'.format(dataset, class_name))
 
-    files_root = 'data\{}\{}'.format(dataset, class_name)
+    files_root = 'data/{}/{}'.format(dataset, class_name)
     class_files = [f for f in os.listdir(files_root) if f.endswith('.wav')]
 
     n_files = len(class_files)
@@ -565,17 +564,17 @@ def compute_features_dataset(dataset, class_name):
         # load the audio file f
         print("File analysed : " + str(f))
         audio, fs = librosa.load(os.path.join(files_root, f), sr=None)
-        print("before cutting:", audio.shape)
+        #print("before cutting:", audio.shape)
 
         #Cutting audio file
         is_file = files_information['name'] == f
         single_file_informations = files_information.loc[is_file]
         attack_sample = single_file_informations['attack'].values[0]
-        print(single_file_informations)
-        print(attack_sample)
+        #print(single_file_informations)
+        #print(attack_sample)
 
         audio = audio[attack_sample:]
-        print("after cutting:", audio.shape)
+        #print("after cutting:", audio.shape)
 
         # compute the spectral features for every frame
         file_features_frames = compute_features_frames(audio, fs, features, n_harmonics, f)
@@ -644,7 +643,7 @@ def compute_features_dataset(dataset, class_name):
     return all_features
 
 
-datasets = ['Test', 'Training']
+datasets = ['Training', 'Test', ]
 classes = ['Distortion', 'NoFX', 'Tremolo']
 dict_features = {'Distortion': [], 'NoFX': [], 'Tremolo': []}
 features = ['Spectral Centroid', 'Spectral Spread', 'Spectral Skewness', 'Spectral Kurtosis',
@@ -652,28 +651,30 @@ features = ['Spectral Centroid', 'Spectral Spread', 'Spectral Skewness', 'Spectr
 
 logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Starting Feature Extraction...')
 
+files_information = pd.read_csv('files_information.csv', delimiter=',')
+
 # Building Labeled Features matrix for Training
 X_train_Distortion = compute_features_dataset(datasets[0], classes[0])
-X_train_NoFX = compute_features_dataset(datasets[0], classes[1])
-X_train_Tremolo = compute_features_dataset(datasets[0], classes[2])
-
-logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Saving Training Features...')
-
 # save train features to csv file
 savetxt('results/X_train_Distortion.csv', X_train_Distortion, delimiter=',')
+
+X_train_NoFX = compute_features_dataset(datasets[0], classes[1])
 savetxt('results/X_train_NoFX.csv', X_train_NoFX, delimiter=',')
+
+
+X_train_Tremolo = compute_features_dataset(datasets[0], classes[2])
 savetxt('results/X_train_Tremolo.csv', X_train_Tremolo, delimiter=',')
 
-# Building Labeled Features matrix for Test
-X_test_Distortion = compute_features_dataset(datasets[1], classes[0])
-X_test_NoFX = compute_features_dataset(datasets[1], classes[1])
-X_test_Tremolo = compute_features_dataset(datasets[1], classes[2])
 
-logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Saving Test Features...')
+# Building Labeled Features matrix for Test
+#X_test_Distortion = compute_features_dataset(datasets[1], classes[0])
+#savetxt('results/X_test_Distortion.csv', X_test_Distortion, delimiter=',')
+#X_test_NoFX = compute_features_dataset(datasets[1], classes[1])
+#savetxt('results/X_test_NoFX.csv', X_test_NoFX, delimiter=',')
+#X_test_Tremolo = compute_features_dataset(datasets[1], classes[2])
+#savetxt('results/X_test_Tremolo.csv', X_test_Tremolo, delimiter=',')
+
 
 # save train features to csv file
-savetxt('results/X_test_Distortion.csv', X_test_Distortion, delimiter=',')
-savetxt('results/X_test_NoFX.csv', X_test_NoFX, delimiter=',')
-savetxt('results/X_test_Tremolo.csv', X_test_Tremolo, delimiter=',')
 
 logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Ended Feature Extraction...')

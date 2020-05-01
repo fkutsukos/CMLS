@@ -1,4 +1,5 @@
 from numpy import loadtxt
+from sklearn.metrics import confusion_matrix
 import logging
 import numpy as np
 import datetime
@@ -60,7 +61,7 @@ X_test_normalized = np.concatenate((X_test_Distortion_normalized, X_test_NoFX_no
                                    axis=0)
 
 # Train Matrices Feature Selection
-k = 3
+k = 150
 logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Feature Selection in process with k = ' +str(k))
 selectedFeatures = SelectKBest(score_func=f_classif, k=k)
 
@@ -130,6 +131,7 @@ def compute_cm_multiclass(gt, predicted):
 
 
 compute_cm_multiclass(y_test, y_test_predicted_mv)
+confusion_matrix(y_test, y_test_predicted_mv)
 
 
 def compute_metrics(gt_labels, predicted_labels):
