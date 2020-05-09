@@ -1,9 +1,18 @@
 from numpy import loadtxt
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.feature_selection import VarianceThreshold
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import classification_report
+from sklearn.pipeline import Pipeline
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+
 from sklearn.metrics import confusion_matrix
 import logging
 import numpy as np
 import datetime
-import sklearn.svm
+import matplotlib.pyplot as plt
+from sklearn.metrics import plot_confusion_matrix
 
 # ~ LOG_LEVEL = logging.INFO
 from sklearn.feature_selection import SelectKBest, f_classif
@@ -21,132 +30,57 @@ logger = logging.getLogger('colorlogger')
 logger.setLevel(LOG_LEVEL)
 logger.addHandler(stream)
 
-X_train_Distortion = loadtxt('results/X_train_Distortion.csv',  delimiter=',')
-X_train_NoFX = loadtxt('results/X_train_NoFX.csv', delimiter=',')
-X_train_Tremolo = loadtxt('results/X_train_Tremolo.csv', delimiter=',')
+X_Distortion = loadtxt('results/X_Distortion.csv', delimiter=',')
+X_NoFX = loadtxt('results/X_NoFX.csv', delimiter=',')
+X_Tremolo = loadtxt('results/X_Tremolo.csv', delimiter=',')
+
+X = np.concatenate((X_Distortion, X_NoFX, X_Tremolo), axis=0)
+
 
 # Build the Ground Truth vector for Training
-y_train_Distortion = np.zeros((X_train_Distortion.shape[0],))
-y_train_NoFX = np.ones((X_train_NoFX.shape[0],))
-y_train_Tremolo = np.ones((X_train_Tremolo.shape[0],)) * 2
+y_Distortion = np.zeros((X_Distortion.shape[0],))
+y_NoFX = np.ones((X_NoFX.shape[0],))
+y_Tremolo = np.ones((X_Tremolo.shape[0],)) * 2
 
-X_test_Distortion = loadtxt('results/X_test_Distortion.csv', delimiter=',')
-X_test_NoFX = loadtxt('results/X_test_NoFX.csv', delimiter=',')
-X_test_Tremolo = loadtxt('results/X_test_Tremolo.csv', delimiter=',')
+y = np.concatenate((y_Distortion, y_NoFX, y_Tremolo), axis=0)
 
-# Build the Ground Truth vector for Test
-y_test_Distortion = np.zeros((X_test_Distortion.shape[0],))
-y_test_NoFX = np.ones((X_test_NoFX.shape[0],))
-y_test_Tremolo = np.ones((X_test_Tremolo.shape[0],)) * 2
+# Sample 3 training sets while holding out 40% of the data for testing (evaluating) our classifiers
+logger.info(
+    str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Splitting into random train and test subsets..')
 
-y_test = np.concatenate((y_test_Distortion, y_test_NoFX, y_test_Tremolo), axis=0)
+X_train , X_test, y_train, y_test= train_test_split(
+    X, y, test_size=0.4, stratify=y)
 
-# Normalization
-logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Data Normalization in process...')
+pipeline = Pipeline([
+    ('scale', StandardScaler()),
+    ('variance_thresh', VarianceThreshold(threshold=(.8 * (1 - .8)))),
+    ('select', SelectKBest(score_func=f_classif)),
+    ('clf', SVC())]
+)
 
-feat_max = np.max(np.concatenate((X_train_Distortion, X_train_NoFX, X_train_Tremolo), axis=0), axis=0)
-feat_min = np.min(np.concatenate((X_train_Distortion, X_train_NoFX, X_train_Tremolo), axis=0), axis=0)
+param_grid = {'select__k': [1, 5],
+              'clf__C': [1],
+              'clf__kernel': ['rbf' , 'linear']}
 
-# Train Matrices Normalised
-X_train_Distortion_normalized = (X_train_Distortion - feat_min) / (feat_max - feat_min)
-X_train_NoFX_normalized = (X_train_NoFX - feat_min) / (feat_max - feat_min)
-X_train_Tremolo_normalized = (X_train_Tremolo - feat_min) / (feat_max - feat_min)
+grid_search = GridSearchCV(pipeline, param_grid, scoring='accuracy', cv=5, n_jobs=5)
+grid_search.fit(X_train, y_train)
 
-# Test Matrices Normalised
-X_test_Distortion_normalized = (X_test_Distortion - feat_min) / (feat_max - feat_min)
-X_test_NoFX_normalized = (X_test_NoFX - feat_min) / (feat_max - feat_min)
-X_test_Tremolo_normalized = (X_test_Tremolo - feat_min) / (feat_max - feat_min)
+print(grid_search.best_params_)
 
-X_test_normalized = np.concatenate((X_test_Distortion_normalized, X_test_NoFX_normalized, X_test_Tremolo_normalized),
-                                   axis=0)
+np.set_printoptions(precision=2)
 
-# Train Matrices Feature Selection
-k = 150
-logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Feature Selection in process with k = ' +str(k))
-selectedFeatures = SelectKBest(score_func=f_classif, k=k)
+class_names = ['Distortion', 'NoFX','Tremolo']
+# Plot non-normalized confusion matrix
+titles_options = [("Confusion matrix, without normalization", None),
+                  ("Normalized confusion matrix", 'true')]
+for title, normalize in titles_options:
+    disp = plot_confusion_matrix(grid_search, X_test, y_test,
+                                 display_labels=class_names,
+                                 cmap=plt.cm.Blues,
+                                 normalize=normalize)
+    disp.ax_.set_title(title)
 
-selected = selectedFeatures.fit(np.concatenate((X_train_Distortion_normalized, X_train_NoFX_normalized, X_train_Tremolo_normalized), axis=0),
-                                                  np.concatenate((y_train_Distortion, y_train_NoFX, y_train_Tremolo), axis=0))
-X_train_selected_normalised = selectedFeatures.fit_transform(np.concatenate((X_train_Distortion_normalized, X_train_NoFX_normalized, X_train_Tremolo_normalized), axis=0),
-                                                  np.concatenate((y_train_Distortion, y_train_NoFX, y_train_Tremolo), axis=0))
+    print(title)
+    print(disp.confusion_matrix)
 
-# Getting the mask of selected features X_Train and apply it on X_Test
-feature_index = selected.get_support(True)
-X_test_normalized_selected = X_test_normalized[:, feature_index]
-
-# Splitting the concatenated X_train_selected and normalized matrix per each class
-X_train_Distortion_selected_normalized = X_train_selected_normalised[: int(X_train_selected_normalised.shape[0]/3), :]
-X_train_NoFX_selected_normalized = X_train_selected_normalised[int(X_train_selected_normalised.shape[0]/3) : int(X_train_selected_normalised.shape[0]*2/3), :]
-X_train_Tremolo_selected_normalized = X_train_selected_normalised[int(X_train_selected_normalised.shape[0]*2/3) :, :]
-
-logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Classification in process...')
-# Setting SVM Parameters
-SVM_parameters = {
-    'C': 1,
-    'kernel': 'rbf',
-}
-
-clf_01 = sklearn.svm.SVC(**SVM_parameters, probability=True)
-clf_02 = sklearn.svm.SVC(**SVM_parameters, probability=True)
-clf_12 = sklearn.svm.SVC(**SVM_parameters, probability=True)
-
-
-# Training multiclass SVM
-
-clf_01.fit(np.concatenate((X_train_Distortion_selected_normalized, X_train_NoFX_selected_normalized), axis=0),
-           np.concatenate((y_train_Distortion, y_train_NoFX), axis=0))
-
-clf_02.fit(np.concatenate((X_train_Distortion_selected_normalized, X_train_Tremolo_selected_normalized), axis=0),
-           np.concatenate((y_train_Distortion, y_train_Tremolo), axis=0))
-
-clf_12.fit(np.concatenate((X_train_NoFX_selected_normalized, X_train_Tremolo_selected_normalized), axis=0),
-           np.concatenate((y_train_NoFX, y_train_Tremolo), axis=0))
-
-
-# Fitting multiclass SVM
-y_test_predicted_DN = clf_01.predict(X_test_normalized_selected).reshape(-1, 1)
-y_test_predicted_DT = clf_02.predict(X_test_normalized_selected).reshape(-1, 1)
-y_test_predicted_NT = clf_12.predict(X_test_normalized_selected).reshape(-1, 1)
-
-y_test_predicted = np.concatenate((y_test_predicted_DN, y_test_predicted_DT, y_test_predicted_NT), axis=1)
-y_test_predicted = np.array(y_test_predicted, dtype=np.int)
-
-# SVM majority voting
-y_test_predicted_mv = np.zeros((y_test_predicted.shape[0],))
-for i, e in enumerate(y_test_predicted):
-    y_test_predicted_mv[i] = np.bincount(e).argmax()
-
-
-def compute_cm_multiclass(gt, predicted):
-    classes = np.unique(gt)
-
-    CM = np.zeros((len(classes), len(classes)))
-
-    for i in np.arange(len(classes)):
-        pred_class = predicted[gt == i]
-
-        for j in np.arange(len(pred_class)):
-            CM[i, int(pred_class[j])] = CM[i, int(pred_class[j])] + 1
-    print(CM)
-
-
-compute_cm_multiclass(y_test, y_test_predicted_mv)
-confusion_matrix(y_test, y_test_predicted_mv)
-
-
-def compute_metrics(gt_labels, predicted_labels):
-    TP = np.sum(np.logical_and(predicted_labels == 1, gt_labels == 1))
-    FP = np.sum(np.logical_and(predicted_labels == 1, gt_labels == 0))
-    TN = np.sum(np.logical_and(predicted_labels == 0, gt_labels == 0))
-    FN = np.sum(np.logical_and(predicted_labels == 0, gt_labels == 1))
-    accuracy = (TP + TN) / (TP + FP + TN + FN)
-    precision = TP / (TP + FP)
-    recall = TP / (TP + FN)
-    F1_score = 2 * precision * recall / (precision + recall)
-    print("Results : \n accuracy = {} \n precision = {} \n recall = {} \n F1 score = {}".format(
-        accuracy, precision, recall, F1_score))
-
-#compute_metrics(y_test, y_test_predicted_mv)
-logger.info(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Finished :)')
-
-
+plt.show()

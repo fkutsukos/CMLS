@@ -11,7 +11,7 @@ def compute_ap(win):
     ap = sum(s_m)/n
     return ap
 
-folder = ['Generic'];
+folder = ['Training'];
 classes=['Distortion', 'NoFX', 'Tremolo'];
 dict_train_ap = {'NoFX': [], 'Distortion': [], 'Tremolo': []};
 
@@ -29,13 +29,8 @@ else:
 from pathlib import Path
 
 for i in folder:
-    print(i)
     for c in classes:
-        print(c)
-
         ap_root = Path('data/{}/{}'.format(i, c))
-
-        #ap_root = '\CMLS\Prova\{}\{}'.format(i,c)
         files = [f for f in os.listdir(ap_root) if f.endswith('.wav')];
 
         for index, f in enumerate(files):
@@ -61,7 +56,6 @@ for i in folder:
                    break
 
             #store useful data in pandas DataFrames
-
             files_information = files_information.append({'name': f, 'effect': c, 'attack': attack_sample}, ignore_index=True)
             print(f)
 files_information.to_csv('files_information.csv', index = False)
