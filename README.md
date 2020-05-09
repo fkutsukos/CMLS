@@ -9,6 +9,6 @@ The 3 classes to discriminated are :
 - tremolo
 - no effect
 
-The dataset is a set of 10000 monophonic guitar and sample sounds.
+The dataset is a set of around 11000 monophonic guitar and sample sounds.
 
 The preprocessing.py 
