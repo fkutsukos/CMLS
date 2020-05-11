@@ -58,14 +58,46 @@ pipeline = Pipeline([
     ('clf', SVC())]
 )
 
-param_grid = {'select__k': [1, 5],
-              'clf__C': [1],
+
+param_grid = {'select__k': [10,25,50,75,100,125,150,175,200,225,250,275,300,325,350,375,400,418],
+              'clf__C': [0.1, 1, 2, 5, 10],
               'clf__kernel': ['rbf' , 'linear']}
 
-grid_search = GridSearchCV(pipeline, param_grid, scoring='accuracy', cv=5, n_jobs=5)
+logger.info(
+    str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Computing Grid-search CV ... ')
+
+grid_search = GridSearchCV(pipeline, param_grid, scoring='accuracy', cv=5)
+
+logger.info(
+    str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Fitting grid search with data train... ')
+
 grid_search.fit(X_train, y_train)
 
+logger.info(
+    str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Grid Search Fitted!! ')
+
+#computing scores
+print("Best parameters set found on development set:")
+print()
 print(grid_search.best_params_)
+print()
+print("Grid scores on development set:")
+print()
+means = grid_search.cv_results_['mean_test_score']
+stds = grid_search.cv_results_['std_test_score']
+for mean, std, params in zip(means, stds, grid_search.cv_results_['params']):
+    print("%0.3f (+/-%0.03f) for %r"
+          % (mean, std * 2, params))
+print()
+
+print("Detailed classification report:")
+print()
+print("The model is trained on the full development set.")
+print("The scores are computed on the full evaluation set.")
+print()
+y_true, y_pred = y_test, grid_search.predict(X_test)
+print(classification_report(y_true, y_pred))
+print()
 
 np.set_printoptions(precision=2)
 
@@ -83,4 +115,4 @@ for title, normalize in titles_options:
     print(title)
     print(disp.confusion_matrix)
 
-plt.show()
+    plt.show()
