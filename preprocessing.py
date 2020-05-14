@@ -11,7 +11,7 @@ def compute_ap(win):
     ap = sum(s_m)/n
     return ap
 
-folder = ['Training'];
+folder = ['Poly','Mono'];
 classes=['Distortion', 'NoFX', 'Tremolo'];
 dict_train_ap = {'NoFX': [], 'Distortion': [], 'Tremolo': []};
 
@@ -20,7 +20,7 @@ win_length = int(np.floor(0.01 * Fs));
 hop_size = win_length;
 window = sp.signal.get_window(window='boxcar', Nx=win_length);
 
-if os.path.isfile('files_information.csv'):
+if (os.path.isfile('files_information.csv')):
     files_information = pd.read_csv('files_information.csv', delimiter=';')
 
 else:

@@ -30,14 +30,23 @@ logger = logging.getLogger('colorlogger')
 logger.setLevel(LOG_LEVEL)
 logger.addHandler(stream)
 
-X_Distortion = loadtxt('results/X_Distortion.csv', delimiter=',')
-X_NoFX = loadtxt('results/X_NoFX.csv', delimiter=',')
-X_Tremolo = loadtxt('results/X_Tremolo.csv', delimiter=',')
+logger.info(
+    str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Reading and concatenating feature files ... ')
+
+X_Distortion_poly = loadtxt('results/X_Distortion_poly.csv', delimiter=',')
+X_NoFX_poly = loadtxt('results/X_NoFX_poly.csv', delimiter=',')
+X_Tremolo_poly = loadtxt('results/X_Tremolo_poly.csv', delimiter=',')
+X_Distortion_mono = loadtxt('results/X_Distortion_mono.csv', delimiter=',')
+X_NoFX_mono = loadtxt('results/X_NoFX_mono.csv', delimiter=',')
+X_Tremolo_mono = loadtxt('results/X_Tremolo_mono.csv', delimiter=',')
+
+X_Distortion = np.concatenate((X_Distortion_mono, X_Distortion_poly), axis=0)
+X_NoFX = np.concatenate((X_NoFX_mono, X_NoFX_poly), axis=0)
+X_Tremolo = np.concatenate((X_Tremolo_mono, X_Tremolo_poly), axis=0)
 
 X = np.concatenate((X_Distortion, X_NoFX, X_Tremolo), axis=0)
 
-
-# Build the Ground Truth vector for Training
+# Build the Ground Truth vector for Mono
 y_Distortion = np.zeros((X_Distortion.shape[0],))
 y_NoFX = np.ones((X_NoFX.shape[0],))
 y_Tremolo = np.ones((X_Tremolo.shape[0],)) * 2
@@ -58,15 +67,15 @@ pipeline = Pipeline([
     ('clf', SVC())]
 )
 
-
 param_grid = {'select__k': [10,25,50,75,100,125,150,175,200,225,250,275,300,325,350,375,400,418],
-              'clf__C': [0.1, 1, 2, 5, 10],
-              'clf__kernel': ['rbf' , 'linear']}
+              'clf__C': [0.1, 1, 2, 5, 10, 100],
+              'clf__kernel': ['rbf']}
+
 
 logger.info(
     str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Computing Grid-search CV ... ')
 
-grid_search = GridSearchCV(pipeline, param_grid, scoring='accuracy', cv=5)
+grid_search = GridSearchCV(pipeline, param_grid, scoring='accuracy', cv=5, n_jobs=5)
 
 logger.info(
     str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Fitting grid search with data train... ')
@@ -116,3 +125,4 @@ for title, normalize in titles_options:
     print(disp.confusion_matrix)
 
     plt.show()
+
