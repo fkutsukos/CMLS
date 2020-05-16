@@ -30,19 +30,25 @@ logger = logging.getLogger('colorlogger')
 logger.setLevel(LOG_LEVEL)
 logger.addHandler(stream)
 
+# enable this parameter to include polyphonic sound in the classification
+classifyPoly = True
+
 logger.info(
     str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Reading and concatenating feature files ... ')
 
-X_Distortion_poly = loadtxt('results/X_Distortion_poly.csv', delimiter=',')
-X_NoFX_poly = loadtxt('results/X_NoFX_poly.csv', delimiter=',')
-X_Tremolo_poly = loadtxt('results/X_Tremolo_poly.csv', delimiter=',')
-X_Distortion_mono = loadtxt('results/X_Distortion_mono.csv', delimiter=',')
-X_NoFX_mono = loadtxt('results/X_NoFX_mono.csv', delimiter=',')
-X_Tremolo_mono = loadtxt('results/X_Tremolo_mono.csv', delimiter=',')
+X_Distortion = loadtxt('results/X_Distortion_mono.csv', delimiter=',')
+X_NoFX = loadtxt('results/X_NoFX_mono.csv', delimiter=',')
+X_Tremolo = loadtxt('results/X_Tremolo_mono.csv', delimiter=',')
 
-X_Distortion = np.concatenate((X_Distortion_mono, X_Distortion_poly), axis=0)
-X_NoFX = np.concatenate((X_NoFX_mono, X_NoFX_poly), axis=0)
-X_Tremolo = np.concatenate((X_Tremolo_mono, X_Tremolo_poly), axis=0)
+if classifyPoly == True:
+    logger.info(
+        str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Polyphonic sounds included ... ')
+    X_Distortion_poly = loadtxt('results/X_Distortion_poly.csv', delimiter=',')
+    X_NoFX_poly = loadtxt('results/X_NoFX_poly.csv', delimiter=',')
+    X_Tremolo_poly = loadtxt('results/X_Tremolo_poly.csv', delimiter=',')
+    X_Distortion = np.concatenate((X_Distortion, X_Distortion_poly), axis=0)
+    X_NoFX = np.concatenate((X_NoFX, X_NoFX_poly), axis=0)
+    X_Tremolo = np.concatenate((X_Tremolo, X_Tremolo_poly), axis=0)
 
 X = np.concatenate((X_Distortion, X_NoFX, X_Tremolo), axis=0)
 
@@ -57,7 +63,7 @@ y = np.concatenate((y_Distortion, y_NoFX, y_Tremolo), axis=0)
 logger.info(
     str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Splitting into random train and test subsets..')
 
-X_train , X_test, y_train, y_test= train_test_split(
+X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.4, stratify=y)
 
 pipeline = Pipeline([
@@ -67,10 +73,9 @@ pipeline = Pipeline([
     ('clf', SVC())]
 )
 
-param_grid = {'select__k': [10,25,50,75,100,125,150,175,200,225,250,275,300,325,350,375,400,418],
+param_grid = {'select__k': [10, 25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 418],
               'clf__C': [0.1, 1, 2, 5, 10, 100],
               'clf__kernel': ['rbf']}
-
 
 logger.info(
     str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Computing Grid-search CV ... ')
@@ -85,7 +90,7 @@ grid_search.fit(X_train, y_train)
 logger.info(
     str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ' Grid Search Fitted!! ')
 
-#computing scores
+# computing scores
 print("Best parameters set found on development set:")
 print()
 print(grid_search.best_params_)
@@ -110,7 +115,7 @@ print()
 
 np.set_printoptions(precision=2)
 
-class_names = ['Distortion', 'NoFX','Tremolo']
+class_names = ['Distortion', 'NoFX', 'Tremolo']
 # Plot non-normalized confusion matrix
 titles_options = [("Confusion matrix, without normalization", None),
                   ("Normalized confusion matrix", 'true')]
@@ -125,4 +130,3 @@ for title, normalize in titles_options:
     print(disp.confusion_matrix)
 
     plt.show()
-

@@ -644,7 +644,7 @@ def compute_features_dataset(dataset, class_name):
 
 
 datasets = ['Mono', 'Poly']
-classes = ['Distortion', 'NoFX', 'Tremolo']
+effects = ['Distortion', 'NoFX', 'Tremolo']
 dict_features = {'Distortion': [], 'NoFX': [], 'Tremolo': []}
 features = ['Spectral Centroid', 'Spectral Spread', 'Spectral Skewness', 'Spectral Kurtosis',
             'Spectral Rolloff', 'Spectral Slope', 'Spectral Flatness', 'Spectral Flux', 'Zero Crossing Rate']
@@ -656,25 +656,25 @@ files_information = pd.read_csv('files_information.csv', delimiter=',')
 
 # Building Labeled Features matrix for Monophonic sounds
 # and then save  features to csv file
-X_Distortion = compute_features_dataset(datasets[0], classes[0])
+X_Distortion = compute_features_dataset(datasets[0], effects[0])
 savetxt('results/X_Distortion_mono.csv', X_Distortion, delimiter=',')
 
-X_NoFX = compute_features_dataset(datasets[0], classes[1])
+X_NoFX = compute_features_dataset(datasets[0], effects[1])
 savetxt('results/X_NoFX_mono.csv', X_NoFX, delimiter=',')
 
-X_Tremolo = compute_features_dataset(datasets[0], classes[2])
+X_Tremolo = compute_features_dataset(datasets[0], effects[2])
 savetxt('results/X_Tremolo_mono.csv', X_Tremolo, delimiter=',')
 
 
 # Building Labeled Features matrix for Polyphonic sounds
 # and then save  features to csv file
-X_Distortion_poly = compute_features_dataset(datasets[1], classes[0])
+X_Distortion_poly = compute_features_dataset(datasets[1], effects[0])
 savetxt('results/X_Distortion_poly.csv', X_Distortion_poly, delimiter=',')
 
-X_NoFX_poly = compute_features_dataset(datasets[1], classes[1])
+X_NoFX_poly = compute_features_dataset(datasets[1], effects[1])
 savetxt('results/X_NoFX_poly.csv', X_NoFX_poly, delimiter=',')
 
-X_Tremolo_poly = compute_features_dataset(datasets[1], classes[2])
+X_Tremolo_poly = compute_features_dataset(datasets[1], effects[2])
 savetxt('results/X_Tremolo_poly.csv', X_Tremolo_poly, delimiter=',')
 
 # save train features to csv file
