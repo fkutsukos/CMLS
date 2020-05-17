@@ -1,6 +1,9 @@
 # CMLS 
-CMLS Assignment 3 - Audio Effect Classification by students 
-
+CMLS  Homework 1 , Group 2, Assignment 3 - Audio Effect Classification by:
+- 10577360 
+- 10650559 
+- 10574134 
+- 10532582
 
 A system of consisted of 3 python programs that combined are able
 to predict the audio effect used in recordings of electric guitar and bass.
